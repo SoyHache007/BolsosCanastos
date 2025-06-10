@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Registro de Canastos y Bolsos</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f1f5f9;
+      margin: 0;
+      padding: 10px;
+      color: #1f2937;
+    }
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 12px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      max-width: 420px;
+      margin: 0 auto;
+    }
+    h2 {
+      font-size: 18px;
+      text-align: center;
+      margin-bottom: 10px;
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    select, input {
+      font-size: 18px;
+      padding: 8px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      width: 100%;
+    }
+    input[type="text"]::-webkit-inner-spin-button,
+    input[type="text"]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    .scroll-container {
+      max-height: 160px;
+      overflow-y: auto;
+      margin-top: 10px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      position: relative;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    thead th {
+      background: #e2e8f0;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      border-bottom: 2px solid #cbd5e1;
+    }
+    th, td {
+      padding: 6px;
+      text-align: center;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .resumen-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 10px;
+      font-size: 15px;
+      font-weight: bold;
+    }
+    #nombreCadete {
+      font-size: 15px;
+      color: #2563eb;
+    }
+    .botones {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 10px;
+      gap: 10px;
+    }
+    button {
+      padding: 10px 16px;
+      font-size: 14px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      background-color: #10b981;
+      color: white;
+      transition: background-color 0.3s ease;
+    }
+    button:hover {
+      background-color: #059669;
+    }
+    button.reiniciar {
+      background-color: #ef4444;
+    }
+    button.reiniciar:hover {
+      background-color: #b91c1c;
+    }
+    @media (max-width: 360px) {
+      h2 {
+        font-size: 16px;
+      }
+      td {
+        font-size: 12px;
+      }
+      .resumen-container {
+        font-size: 13px;
+        flex-direction: column;
+        align-items: flex-start;
+      }
+    }
+  #btn-escanear {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background-color: #2196f3;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 60px;
+  height: 60px;
+  font-size: 24px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+  cursor: pointer;
+  z-index: 1000;
+}
+  </style>
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+  <script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('service-worker.js')
+      .then(reg => console.log("SW registrado"))
+      .catch(err => console.error("SW fallo:", err));
+  }
+</script>
+</head>
+<body>
+
+  <div class="card">
+    <h2>Registro de Canastos y Bolsos</h2>
+
+    <div class="form-group">
+      <select id="cadete">
+  <option value="" disabled selected>Seleccioná Cadete</option>
+  <option value="186036">Masmuti (186036)</option>
+  <option value="173994">Aguilar (173994)</option>
+  <option value="174947">Cutipa (174947)</option>
+  <option value="185479">Lucero (185479)</option>
+  <option value="170202">Barrera (170202)</option>
+  <option value="nuevo">➕ Agregar nuevo cadete</option>
+</select>
+
+      <input type="text" id="pedido" placeholder="N° Pedido (solo números)" autocomplete="off" inputmode="numeric" pattern="[0-9]*" />
+      <input type="number" id="canastos" placeholder="Canastos" autocomplete="off" min="0" />
+      <input type="number" id="bolsos" placeholder="Bolsos" autocomplete="off" min="0" />
+    </div>
+
+    <div class="scroll-container">
+      <table id="tablaDatos">
+        <thead>
+          <tr>
+            <th>Pedido</th>
+            <th>Canastos</th>
+            <th>Bolsos</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div class="resumen-container">
+      <div id="nombreCadete">Cadete: —</div>
+      <div id="totales">Canastos: 0 | Bolsos: 0</div>
+    </div>
+
+    <div class="botones">
+     <button onclick="imprimirResumen()">🖨️ Imprimir Resumen</button>
+      <button class="reiniciar" onclick="reiniciarTabla()">♻️ Reiniciar</button>
+    </div>
+  </div>
+<div id="scanner-container" style="display: none; justify-content: center; align-items: center; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 1000;">
+  <div style="width: 300px; background: white; padding: 10px; border-radius: 10px;">
+    <div id="reader" style="width: 100%;"></div>
+    <button onclick="cerrarScanner()" style="width: 100%; margin-top: 10px;">❌ Cerrar</button>
+  </div>
+</div>
+
+<!-- Botón flotante siempre visible -->
+<button onclick="iniciarScanner()" style="position: fixed; bottom: 20px; right: 20px; background: #2563eb; color: white; border: none; border-radius: 50%; width: 60px; height: 60px; font-size: 26px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); z-index: 1001;">📷</button>
+<script>
+  const cadetes = {
+    "186036": "Masmuti",
+    "173994": "Aguilar",
+    "174947": "Cutipa",
+    "185479": "Lucero",
+    "170202": "Barrera"
+  };
+
+  const cadeteSelect = document.getElementById("cadete");
+  const pedidoInput = document.getElementById("pedido");
+  const canastosInput = document.getElementById("canastos");
+  const bolsosInput = document.getElementById("bolsos");
+  const nombreCadete = document.getElementById("nombreCadete");
+  const tablaBody = document.querySelector("#tablaDatos tbody");
+  const totalesDiv = document.getElementById("totales");
+
+  let registros = JSON.parse(localStorage.getItem("registros")) || [];
+  let cadeteActual = "";
+
+  cadeteSelect.addEventListener("change", () => {
+  const legajo = cadeteSelect.value;
+  if (legajo === "nuevo") {
+    const nuevoLegajo = prompt("Ingresá el legajo del nuevo cadete:");
+    if (!nuevoLegajo || !/^\d+$/.test(nuevoLegajo)) {
+      alert("Legajo inválido.");
+      cadeteSelect.value = "";
+      return;
+    }
+
+    const nuevoNombre = prompt("Ingresá el nombre del nuevo cadete:");
+    if (!nuevoNombre || nuevoNombre.trim().length < 2) {
+      alert("Nombre inválido.");
+      cadeteSelect.value = "";
+      return;
+    }
+
+    // Agregar a la lista de cadetes
+    cadetes[nuevoLegajo] = nuevoNombre;
+
+    // Crear la nueva opción en el menú
+    const nuevaOpcion = document.createElement("option");
+    nuevaOpcion.value = nuevoLegajo;
+    nuevaOpcion.textContent = `${nuevoNombre} (${nuevoLegajo})`;
+
+    // Insertar antes de la opción "nuevo"
+    cadeteSelect.insertBefore(nuevaOpcion, cadeteSelect.querySelector('option[value="nuevo"]'));
+
+    // Seleccionarlo automáticamente
+    cadeteSelect.value = nuevoLegajo;
+    cadeteActual = nuevoNombre;
+    nombreCadete.textContent = "Cadete: " + cadeteActual;
+
+    pedidoInput.focus();
+  } else if (cadetes[legajo]) {
+    cadeteActual = cadetes[legajo];
+    nombreCadete.textContent = "Cadete: " + cadeteActual;
+    pedidoInput.focus();
+  } else {
+    cadeteActual = "";
+    nombreCadete.textContent = "Cadete: —";
+  }
+});
+
+  pedidoInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      const pedidoVal = pedidoInput.value.trim();
+      if (!/^\d+$/.test(pedidoVal)) {
+        alert("El N° de Pedido debe ser solo números.");
+        pedidoInput.focus();
+        return;
+      }
+      canastosInput.focus();
+    }
+  });
+
+  canastosInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      bolsosInput.focus();
+    }
+  });
+
+  bolsosInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      agregarRegistro();
+    }
+  });
+
+  function agregarRegistro() {
+    const pedido = pedidoInput.value.trim();
+    const canastos = parseInt(canastosInput.value) || 0;
+    const bolsos = parseInt(bolsosInput.value) || 0;
+
+    if (!pedido || !/^\d+$/.test(pedido)) {
+      alert("Ingresá un N° de Pedido válido (solo números).");
+      pedidoInput.focus();
+      return;
+    }
+    if (!cadeteActual) {
+      alert("Seleccioná un cadete válido.");
+      cadeteSelect.focus();
+      return;
+    }
+
+    const index = registros.findIndex(r => r.pedido === pedido);
+    if (index !== -1) {
+      registros[index].canastos = canastos;
+      registros[index].bolsos = bolsos;
+    } else {
+      registros.push({ pedido, canastos, bolsos });
+    }
+
+    localStorage.setItem("registros", JSON.stringify(registros));
+    renderTabla();
+    limpiarInputs();
+    pedidoInput.focus();
+  }
+
+  function renderTabla() {
+    tablaBody.innerHTML = "";
+    let totalCanastos = 0;
+    let totalBolsos = 0;
+
+    registros.forEach(reg => {
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>${reg.pedido}</td>
+        <td>${reg.canastos}</td>
+        <td>${reg.bolsos}</td>
+      `;
+      tablaBody.appendChild(row);
+      totalCanastos += reg.canastos;
+      totalBolsos += reg.bolsos;
+    });
+
+    totalesDiv.textContent = `Canastos: ${totalCanastos} | Bolsos: ${totalBolsos}`;
+  }
+
+  function limpiarInputs() {
+    pedidoInput.value = "";
+    canastosInput.value = "";
+    bolsosInput.value = "";
+  }
+
+  function reiniciarTabla() {
+    if (confirm("¿Seguro querés reiniciar la tabla? Se borrarán todos los registros.")) {
+      registros = [];
+      localStorage.removeItem("registros");
+      renderTabla();
+      limpiarInputs();
+      pedidoInput.focus();
+    }
+  }
+
+  // Al cargar la página:
+  if (cadeteSelect.value) {
+    cadeteActual = cadetes[cadeteSelect.value];
+    nombreCadete.textContent = "Cadete: " + cadeteActual;
+  }
+
+  renderTabla();
+  
+  function imprimirResumen() {
+  if (registros.length === 0 || !cadeteActual) {
+    alert("No hay datos para imprimir o no se seleccionó un cadete.");
+    return;
+  }
+
+  // Crear tabla en HTML
+  let tablaHTML = `
+    <html>
+    <head>
+      <title>Resumen de Reparto</title>
+      <style>
+        body {
+          font-family: Arial, sans-serif;
+          margin: 30px;
+        }
+        h2 {
+          text-align: center;
+        }
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-top: 20px;
+        }
+        th, td {
+          border: 1px solid #333;
+          padding: 10px;
+          text-align: center;
+        }
+        tfoot td {
+          font-weight: bold;
+        }
+        .footer {
+          margin-top: 30px;
+          text-align: right;
+          font-size: 16px;
+        }
+    button {
+  margin-top: 5px;
+}
+      </style>
+    </head>
+    <body>
+      <h2>Resumen de Reparto</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Nº de Pedido</th>
+            <th>Canastos</th>
+            <th>Bolsos</th>
+          </tr>
+        </thead>
+        <tbody>`;
+
+  let totalCanastos = 0;
+  let totalBolsos = 0;
+
+  registros.forEach(r => {
+    tablaHTML += `
+      <tr>
+        <td>${r.pedido}</td>
+        <td>${r.canastos}</td>
+        <td>${r.bolsos}</td>
+      </tr>`;
+    totalCanastos += r.canastos;
+    totalBolsos += r.bolsos;
+  });
+
+  tablaHTML += `
+        </tbody>
+        <tfoot>
+          <tr>
+            <td>Total</td>
+            <td>${totalCanastos}</td>
+            <td>${totalBolsos}</td>
+          </tr>
+        </tfoot>
+      </table>
+      <div class="footer">
+        Cadete: <strong>${cadeteActual}</strong>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const ventanaImpresion = window.open("", "_blank");
+  ventanaImpresion.document.write(tablaHTML);
+  ventanaImpresion.document.close();
+  ventanaImpresion.focus();
+  ventanaImpresion.print();
+}
+</script>
+<script>
+  let html5QrCodeScanner = null; // variable global
+
+  function iniciarScanner() {
+    document.getElementById('scanner-container').style.display = 'flex';
+
+    if (!html5QrCodeScanner) {
+      html5QrCodeScanner = new Html5Qrcode("reader");
+    }
+
+    html5QrCodeScanner.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: 250 },
+      (decodedText, decodedResult) => {
+        html5QrCodeScanner.stop().then(() => {
+          document.getElementById('scanner-container').style.display = 'none';
+          insertarCodigoEnCampoActivo(decodedText);
+        });
+      },
+      (errorMessage) => {
+        // errores de escaneo ignorados
+      }
+    ).catch(err => {
+      alert("No se pudo iniciar el escáner: " + err);
+    });
+  }
+
+  function cerrarScanner() {
+    if (html5QrCodeScanner) {
+      html5QrCodeScanner.stop().then(() => {
+        document.getElementById('scanner-container').style.display = 'none';
+      }).catch(err => {
+        alert("No se pudo detener el escáner: " + err);
+      });
+    }
+  }
+
+  function insertarCodigoEnCampoActivo(ean) {
+    const campo = document.getElementById('pedido');
+    if (campo) {
+      campo.value = ean;
+      campo.focus();
+    }
+  }
+</script>
+</body>
+</html>
