@@ -291,34 +291,36 @@
   });
 
   function agregarRegistro() {
-    const pedido = pedidoInput.value.trim();
-    const canastos = parseInt(canastosInput.value) || 0;
-    const bolsos = parseInt(bolsosInput.value) || 0;
+  let pedido = pedidoInput.value.trim();
+  const canastos = parseInt(canastosInput.value) || 0;
+  const bolsos = parseInt(bolsosInput.value) || 0;
 
-    if (!pedido || !/^\d+$/.test(pedido)) {
-      alert("Ingresá un N° de Pedido válido (solo números).");
-      pedidoInput.focus();
-      return;
-    }
-    if (!cadeteActual) {
-      alert("Seleccioná un cadete válido.");
-      cadeteSelect.focus();
-      return;
-    }
-
-    const index = registros.findIndex(r => r.pedido === pedido);
-    if (index !== -1) {
-      registros[index].canastos = canastos;
-      registros[index].bolsos = bolsos;
-    } else {
-      registros.push({ pedido, canastos, bolsos });
-    }
-
-    localStorage.setItem("registros", JSON.stringify(registros));
-    renderTabla();
-    limpiarInputs();
-    pedidoInput.focus();
+  if (!cadeteActual) {
+    alert("Seleccioná un cadete válido.");
+    cadeteSelect.focus();
+    return;
   }
+
+  // Si no se ingresó pedido, asignar el siguiente número disponible
+  if (!pedido) {
+    const usados = registros.map(r => parseInt(r.pedido));
+    const max = usados.length > 0 ? Math.max(...usados) : 0;
+    pedido = (max + 1).toString();
+  }
+
+  const index = registros.findIndex(r => r.pedido === pedido);
+  if (index !== -1) {
+    registros[index].canastos = canastos;
+    registros[index].bolsos = bolsos;
+  } else {
+    registros.push({ pedido, canastos, bolsos });
+  }
+
+  localStorage.setItem("registros", JSON.stringify(registros));
+  renderTabla();
+  limpiarInputs();
+  pedidoInput.focus();
+}
 
   function renderTabla() {
     tablaBody.innerHTML = "";
